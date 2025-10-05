@@ -1,0 +1,5 @@
+{
+  "backend/bookingBridge.jsw": {
+    "getAvailability": { "role": "anyone" }
+  }
+}

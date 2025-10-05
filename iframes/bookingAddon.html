@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>VX Add-ons — Glass</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#FF93FD; --lux:#E0C6A8;
+  --txt:rgba(255,255,255,.96); --muted:rgba(255,255,255,.72);
+  --glass:rgba(255,255,255,.07); --line:rgba(255,255,255,.18); --hover:rgba(255,255,255,.12);
+  --r-outer:28px; --r-card:22px; --r-pill:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:var(--txt)}
+body{font-family:'Montserrat',sans-serif;font-weight:200;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:6vh 0}
+.vx-frame{width:min(1180px,95vw);border-radius:var(--r-outer);position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.vx-head{display:grid;place-items:center;height:84px;padding:0 12px;text-align:center}
+.vx-eyebrow{letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-size:12px}
+.vx-title{font-size:48px;letter-spacing:.18em;font-weight:200;margin-top:6px}
+.vx-sub{text-align:center;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--muted);letter-spacing:.14em;font-size:18px;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vx-body{display:grid;grid-template-columns:1fr 380px;gap:28px;padding:24px}
+@media (max-width:980px){.vx-body{grid-template-columns:1fr}}
+.vx-card{background:var(--glass);border:1px solid var(--line);border-radius:var(--r-card);padding:20px}
+.vx-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.vx-grid{grid-template-columns:1fr}}
+.vx-chip{height:58px;display:flex;align-items:center;justify-content:space-between;border-radius:var(--r-pill);background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:18px;padding:0 18px;cursor:pointer;transition:transform .15s,background .15s,border-color .15s,box-shadow .15s}
+.vx-chip:hover{background:var(--hover);transform:translateY(-2px)}
+.vx-chip.is-picked{border:2px solid var(--accent);background:rgba(255,255,255,.08);box-shadow:0 0 14px rgba(255,147,253,.45), inset 0 0 6px rgba(255,147,253,.25)}
+.vx-left{display:flex;align-items:baseline;gap:12px}
+.vx-min{font-size:12px;color:var(--muted);letter-spacing:.14em}
+.vx-details{display:flex;flex-direction:column;gap:14px}
+.vx-details h4{margin:0 0 6px;font-size:22px;color:var(--lux);text-align:center;font-weight:300;letter-spacing:.14em}
+.vx-list{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.vx-row{display:flex;justify-content:space-between;font-size:16px}
+.vx-row small{color:var(--muted);letter-spacing:.1em}
+.vx-total{display:flex;justify-content:space-between;border-top:1px dashed var(--line);padding-top:12px;font-weight:600}
+.vx-actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.vx-btn{flex:1 1 180px;height:52px;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;letter-spacing:.1em;transition:transform .15s,background .15s,border-color .15s,box-shadow .15s}
+.vx-btn:hover{transform:translateY(-2px)}
+.vx-btn.ghost{border:2px solid var(--lux);color:var(--lux);background:transparent}
+.vx-btn.primary{background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--txt)}
+.vx-btn.primary.is-picked{border:2px solid var(--accent);box-shadow:0 0 12px rgba(255,147,253,.35)}
+.vx-tag{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06)}
+</style>
+</head>
+<body>
+  <div class="vx-frame">
+    <div class="vx-head">
+      <div class="vx-eyebrow">CHOOSE ADD-ONS (OPTIONAL)</div>
+      <div class="vx-title">MAKE IT EXTRA CUTE</div>
+    </div>
+    <div class="vx-sub" id="vxSub">Selected service & time will show here when the page sends it.</div>
+
+    <div class="vx-body">
+      <section class="vx-card">
+        <div class="vx-grid" id="grid"></div>
+        <div style="margin-top:12px"><span class="vx-tag">Tap again to remove • Prices shown are before tax</span></div>
+      </section>
+
+      <section class="vx-card vx-details">
+        <h4>SUMMARY</h4>
+        <div class="vx-list" id="list"></div>
+        <div class="vx-total"><span>Total</span><span id="total">$0</span></div>
+        <div class="vx-actions">
+          <button class="vx-btn ghost" id="clearBtn">CLEAR</button>
+          <button class="vx-btn primary" id="saveBtn">SAVE ADD-ONS</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+// theme overrides via query (?accent=%23FF00FF ...)
+const qp = new URLSearchParams(location.search);
+['accent','lux','txt','muted','glass','line','hover'].forEach(k=>{
+  const v = qp.get(k); if(v) document.documentElement.style.setProperty(`--${k}`, decodeURIComponent(v));
+});
+
+// catalog
+const ADDONS = [
+  { id:'bleachKnots', name:'Bleach My Knots', price:35, minutes:0 },
+  { id:'colorLace',   name:'Color My Lace',   price:25, minutes:0 },
+  { id:'pluckLace',   name:'Pluck My Lace',   price:25, minutes:0 },
+  { id:'hdClosure',   name:'Install HD Closure', price:95, minutes:0 },
+  { id:'hdFrontal',   name:'Install HD Frontal',  price:185, minutes:0 },
+  { id:'washBundles', name:'Wash My Bundles',  price:35, minutes:0 },
+  { id:'color2',      name:'Color Two Bundles', price:70, minutes:0 },
+  { id:'color3',      name:'Color Three Bundles', price:105, minutes:0 }
+];
+
+const grid    = document.getElementById('grid');
+const list    = document.getElementById('list');
+const totalEl = document.getElementById('total');
+const subEl   = document.getElementById('vxSub');
+const picked  = new Map();
+const money   = n => `$${Number(n||0).toFixed(0)}`;
+
+const CONTEXT = { serviceName:'', dateLabel:'', timeLabel:'' };
+
+function renderGrid(){
+  grid.innerHTML='';
+  ADDONS.forEach(a=>{
+    const el = document.createElement('button');
+    el.type='button'; el.className='vx-chip'; el.dataset.id=a.id;
+    el.innerHTML = `
+      <span class="vx-left">
+        <span>${a.name}</span>
+        <span class="vx-min">${a.minutes||0} min</span>
+      </span>
+      <span>${money(a.price)}</span>`;
+    el.addEventListener('click', ()=>{
+      if(picked.has(a.id)) picked.delete(a.id); else picked.set(a.id, a);
+      renderSummary();
+      el.classList.toggle('is-picked', picked.has(a.id));
+    });
+    grid.appendChild(el);
+  });
+}
+function renderSummary(){
+  list.innerHTML=''; let total=0;
+  [...picked.values()].forEach(a=>{
+    total += Number(a.price||0);
+    const row = document.createElement('div');
+    row.className='vx-row';
+    row.innerHTML = `<span>${a.name} <small>${a.minutes||0}m</small></span><span>${money(a.price)}</span>`;
+    list.appendChild(row);
+  });
+  totalEl.textContent = money(total);
+  return total;
+}
+
+const saveBtn  = document.getElementById('saveBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+saveBtn.addEventListener('click', ()=>{
+  const items = [...picked.values()].map(a => ({ id:a.id, name:a.name, label:a.name, price:Number(a.price||0), minutes:Number(a.minutes||0), qty:1 }));
+  const total = renderSummary();
+  // main event
+  window.parent.postMessage({ type:'vx:addons', payload:{ items, total } }, '*');
+  // visual pulse
+  saveBtn.classList.add('is-picked'); setTimeout(()=>saveBtn.classList.remove('is-picked'), 900);
+});
+
+clearBtn.addEventListener('click', ()=>{
+  picked.clear(); renderSummary();
+  document.querySelectorAll('.vx-chip.is-picked').forEach(n=>n.classList.remove('is-picked'));
+  window.parent.postMessage({ type:'vx:addons', payload:{ items:[], total:0 } }, '*');
+});
+
+window.addEventListener('message', (e)=>{
+  const { type, payload, data } = e.data || {};
+  if (type === 'vx:context' && payload){
+    if (payload.serviceName) CONTEXT.serviceName = payload.serviceName;
+    if (payload.dateLabel)   CONTEXT.dateLabel   = payload.dateLabel;
+    if (payload.timeLabel)   CONTEXT.timeLabel   = payload.timeLabel;
+    const bits=[]; if(CONTEXT.serviceName) bits.push(CONTEXT.serviceName); if(CONTEXT.dateLabel) bits.push(CONTEXT.dateLabel); if(CONTEXT.timeLabel) bits.push(CONTEXT.timeLabel);
+    subEl.textContent = bits.length ? bits.join(' • ') : 'Selected service & time will show here when the page sends it.';
+  }
+});
+
+// init
+renderGrid(); renderSummary();
+window.parent.postMessage({ type:'READY' }, '*');
+</script>
+</body>
+</html>

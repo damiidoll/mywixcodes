@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>VX Booking — Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#FF93FD; --lux:#E0C6A8;
+  --txt:rgba(255,255,255,.96); --muted:rgba(255,255,255,.72);
+  --glass:rgba(255,255,255,.07); --line:rgba(255,255,255,.18); --hover:rgba(255,255,255,.12);
+  --r-outer:28px; --r-card:22px; --r-pill:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:transparent;color:var(--txt);font-family:'Montserrat',sans-serif;font-weight:200;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:6vh 0}
+.vx-frame{width:min(1180px,95vw);border-radius:var(--r-outer);position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.vx-head{display:grid;grid-template-columns:64px 1fr 64px;align-items:center;height:84px;padding:0 6px}
+.vx-title{text-align:center;font-size:44px;letter-spacing:.18em;font-weight:200;white-space:nowrap}
+.vx-nav{display:flex;align-items:center;justify-content:center;cursor:pointer}
+.vx-nav svg{width:26px;height:26px;stroke:var(--txt);opacity:.9;transition:transform .15s}
+.vx-nav:hover svg{transform:scale(1.1)}
+.vx-sub{text-align:center;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--muted);letter-spacing:.14em;font-size:18px;font-weight:300}
+.vx-body{display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:24px;align-items:stretch}
+.vx-stack{display:flex;flex-direction:column;gap:18px;min-height:100%}
+.vx-card{background:var(--glass);border:1px solid var(--line);border-radius:var(--r-card);padding:20px}
+
+/* Calendar grid */
+.vx-week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;color:var(--muted);font-size:15px;margin-bottom:8px}
+.vx-cal-wrap{min-height:370px;display:flex;flex-direction:column}
+.vx-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.vx-day{position:relative;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);cursor:pointer;transition:transform .15s, background .15s, box-shadow .15s, border-color .15s;user-select:none;height:48px}
+.vx-day:hover{background:rgba(255,255,255,.10);transform:translateY(-2px)}
+.vx-day.is-muted{opacity:.35;pointer-events:none}
+.vx-day.is-picked{border:2px solid var(--accent);box-shadow:0 0 14px rgba(255,147,253,.45), inset 0 0 6px rgba(255,147,253,.25)}
+.vx-dot{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+
+/* Right side times + details */
+.vx-grid-pills{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vx-pill{height:58px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-pill);background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:20px;cursor:pointer;transition:transform .15s, background .15s, border-color .15s}
+.vx-pill:hover{background:var(--hover);transform:translateY(-2px)}
+.vx-pill.is-picked{border:2px solid var(--accent);background:rgba(255,255,255,.08)}
+.vx-more{margin-top:6px;height:52px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);border-radius:var(--r-pill);background:rgba(255,255,255,.06);cursor:pointer;font-size:16px;color:var(--muted)}
+.vx-details{display:flex;flex-direction:column;gap:12px}
+.vx-details h4{margin:0 0 6px;font-size:22px;color:var(--lux);text-align:center;font-weight:300;letter-spacing:.14em}
+.vx-slim{display:grid;grid-template-columns:120px 1fr;row-gap:10px;column-gap:12px;font-size:18px}
+.vx-label{color:var(--muted);font-size:14px;text-transform:uppercase;letter-spacing:.08em}
+.vx-value{font-size:18px}
+
+/* CTAs */
+.vx-ctas{padding-top:12px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.vx-btn{flex:1 1 200px;height:52px;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;letter-spacing:.1em;transition:transform .15s, background .15s, border-color .15s, box-shadow .15s}
+.vx-btn:hover{transform:translateY(-2px)}
+.vx-btn.cart{border:2px solid var(--lux);color:var(--lux);background:transparent}
+.vx-btn.cont{background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--txt)}
+.vx-btn.cart.is-picked{background:rgba(224,198,168,.12);box-shadow:0 0 12px rgba(224,198,168,.35)}
+.vx-btn.cont.is-picked{border:2px solid var(--accent);box-shadow:0 0 12px rgba(255,147,253,.35)}
+
+/* "Things to remember" box */
+.vx-remember h4{margin:0 0 10px;font-size:20px;color:var(--lux);text-align:center;font-weight:300;letter-spacing:.14em}
+.vx-remember ul{margin:0;padding-left:18px}
+.vx-remember li{margin:6px 0;color:var(--muted);}
+
+/* Responsive */
+@media (max-width:980px){ .vx-title{font-size:36px} .vx-body{grid-template-columns:1fr} }
+@media (max-width:480px){ .vx-title{font-size:30px} .vx-sub{font-size:16px} .vx-grid-pills{grid-template-columns:1fr} .vx-btn{height:50px} }
+</style>
+</head>
+<body>
+  <div class="vx-frame">
+    <div class="vx-head">
+      <div class="vx-nav" id="prevMonth" aria-label="Previous">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M15 19L8 12l7-7" stroke="currentColor"/></svg>
+      </div>
+      <div class="vx-title" id="monthTitle">MONTH</div>
+      <div class="vx-nav" id="nextMonth" aria-label="Next">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 5l7 7-7 7" stroke="currentColor"/></svg>
+      </div>
+    </div>
+    <div class="vx-sub" id="dayTitle">DAY • TZ</div>
+
+    <div class="vx-body">
+      <!-- LEFT column: calendar + remember -->
+      <div class="vx-stack">
+        <section class="vx-card">
+          <div class="vx-week"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+          <div class="vx-cal-wrap"><div class="vx-days" id="daysGrid"></div></div>
+        </section>
+
+        <section class="vx-card vx-remember">
+          <h4>THINGS TO REMEMBER</h4>
+          <ul>
+            <li>Arrive with hair clean, detangled, and product-free unless service says otherwise.</li>
+            <li>Late &gt; 10 minutes may forfeit the slot; deposits are non-refundable.</li>
+            <li>Bring your confirmation email/SMS; add notes for special requests.</li>
+            <li>Prices may vary by length/density; final total shown at checkout.</li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- RIGHT column: times + details -->
+      <div class="vx-stack">
+        <section class="vx-card">
+          <div class="vx-grid-pills" id="timeGrid"></div>
+          <div class="vx-more" id="loadMore" style="display:none">LOAD MORE TIMES</div>
+        </section>
+
+        <section class="vx-card vx-details">
+          <h4>BOOKING DETAILS</h4>
+          <div class="vx-slim">
+            <div class="vx-label">Service</div><div class="vx-value" id="valService">—</div>
+            <div class="vx-label">Date</div><div class="vx-value" id="valDate">—</div>
+            <div class="vx-label">Time</div><div class="vx-value" id="valTime">—</div>
+            <div class="vx-label">Price</div><div class="vx-value" id="valPrice">—</div>
+          </div>
+          <div class="vx-ctas">
+            <div class="vx-btn cart" id="btnCart">ADD TO CART</div>
+            <div class="vx-btn cont" id="btnCont">CONTINUE BOOKING</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== state ===== */
+let SERVICE = { name:'', price:0, timeZone:'', serviceId:'' };
+let AVAIL = new Map(); // date => [ {label,start,end,...} ]
+let current = new Date(); // month cursor
+let pickedDay = current.getDate();
+
+/* ===== dom ===== */
+const monthTitle = document.getElementById('monthTitle');
+const dayTitle   = document.getElementById('dayTitle');
+const daysGrid   = document.getElementById('daysGrid');
+const timeGrid   = document.getElementById('timeGrid');
+const loadMore   = document.getElementById('loadMore');
+const valDate    = document.getElementById('valDate');
+const valTime    = document.getElementById('valTime');
+const valPrice   = document.getElementById('valPrice');
+const valService = document.getElementById('valService');
+const btnCart    = document.getElementById('btnCart');
+const btnCont    = document.getElementById('btnCont');
+
+function pad(n){return String(n).padStart(2,'0');}
+function keyOf(y,m,d){return `${y}-${pad(m+1)}-${pad(d)}`;}
+function monthLabel(d){return d.toLocaleString('en-US',{month:'long',year:'numeric'}).toUpperCase();}
+function ordinal(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+function weekday(d){return d.toLocaleString('en-US',{weekday:'long'}).toUpperCase();}
+
+/* ===== build month ===== */
+function buildMonth(d){
+  // clamp picked day to month length
+  const maxDay = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  if (pickedDay > maxDay) pickedDay = maxDay;
+
+  monthTitle.textContent = monthLabel(d);
+  daysGrid.innerHTML='';
+  const y=d.getFullYear(), m=d.getMonth();
+  const first = new Date(y,m,1);
+  const start = first.getDay();
+  const last  = new Date(y,m+1,0).getDate();
+  const prevLast = new Date(y,m,0).getDate();
+
+  for(let i=0;i<start;i++) daysGrid.appendChild(dayCell(prevLast-start+1+i, true));
+  for(let day=1;day<=last;day++) daysGrid.appendChild(dayCell(day, false, y, m));
+  const rem = daysGrid.children.length % 7;
+  if(rem) for(let i=1;i<=7-rem;i++) daysGrid.appendChild(dayCell(i,true));
+
+  updateDayHeader();
+  renderTimes();
+}
+function dayCell(day, muted=false, y=null, m=null){
+  const cell = document.createElement('div');
+  cell.className = 'vx-day' + (muted?' is-muted':'');
+  cell.textContent = day;
+  if(!muted){
+    const k = keyOf(y,m,day);
+    const hasSlots = (AVAIL.get(k)||[]).length>0;
+    if (hasSlots){
+      const dot = document.createElement('div'); dot.className='vx-dot'; cell.appendChild(dot);
+    }
+    if(day===pickedDay && m===current.getMonth() && y===current.getFullYear()) cell.classList.add('is-picked');
+    cell.addEventListener('click', ()=>{
+      pickedDay = day;
+      document.querySelectorAll('.vx-day.is-picked').forEach(n=>n.classList.remove('is-picked'));
+      cell.classList.add('is-picked');
+      updateDayHeader();
+      renderTimes();
+      window.parent.postMessage({ type:'DATE_SELECTED', dateLabel: valDate.textContent }, '*');
+    });
+  }
+  return cell;
+}
+function updateDayHeader(){
+  const y=current.getFullYear(), m=current.getMonth();
+  const d=new Date(y,m,pickedDay);
+  const tz = SERVICE.timeZone ? ` • ${SERVICE.timeZone}` : '';
+  dayTitle.textContent = `${weekday(d)}, ${ordinal(pickedDay)}${tz}`;
+  valDate.textContent = d.toLocaleString('en-US',{weekday:'short'}) + ', ' + d.toLocaleString('en-US',{month:'short'}) + ' ' + pickedDay;
+}
+
+/* ===== times ===== */
+function renderTimes(){
+  timeGrid.innerHTML='';
+  if (loadMore) { loadMore.style.display='none'; }
+  const y=current.getFullYear(), m=current.getMonth();
+  const k = keyOf(y,m,pickedDay);
+  const slots = AVAIL.get(k) || [];
+
+  if(!slots.length){
+    const msg=document.createElement('div');
+    msg.style.cssText='padding:10px 12px;color:var(--muted);font-size:16px';
+    msg.textContent='No times for this day.'; timeGrid.appendChild(msg);
+    valTime.textContent='—';
+    return;
+  }
+
+  const first8 = slots.slice(0,8);
+  const rest   = slots.slice(8);
+  first8.forEach(s=> timeGrid.appendChild(makePill(s)));
+
+  if (rest.length){
+    loadMore.style.display='';
+    let expanded=false;
+    loadMore.onclick = ()=>{
+      if(!expanded){ rest.forEach(s=> timeGrid.appendChild(makePill(s))); loadMore.textContent='HIDE EXTRA TIMES'; expanded=true; }
+      else { [...timeGrid.querySelectorAll('.vx-pill')].slice(8).forEach(n=>n.remove()); loadMore.textContent='LOAD MORE TIMES'; expanded=false; }
+    };
+  }
+}
+function makePill(slot){
+  // slot may be string or object
+  const label = typeof slot === 'string' ? slot : slot.label;
+  const el=document.createElement('div'); el.className='vx-pill'; el.textContent=label;
+  el.addEventListener('click', ()=>{
+    timeGrid.querySelectorAll('.vx-pill.is-picked').forEach(n=>n.classList.remove('is-picked'));
+    el.classList.add('is-picked');
+    valTime.textContent = label;
+    window.parent.postMessage({ type:'TIME_SELECTED', timeLabel: label, slot }, '*');
+  });
+  return el;
+}
+
+/* ===== nav ===== */
+document.getElementById('prevMonth').addEventListener('click', ()=>{
+  current = new Date(current.getFullYear(), current.getMonth()-1, 1);
+  window.parent.postMessage({ type:'MONTH_CHANGE', payload:{ year: current.getFullYear(), month: current.getMonth() } }, '*');
+});
+document.getElementById('nextMonth').addEventListener('click', ()=>{
+  current = new Date(current.getFullYear(), current.getMonth()+1, 1);
+  window.parent.postMessage({ type:'MONTH_CHANGE', payload:{ year: current.getFullYear(), month: current.getMonth() } }, '*');
+});
+
+/* ===== CTAs visual only ===== */
+btnCart.addEventListener('click', ()=>{ btnCont.classList.remove('is-picked'); btnCart.classList.toggle('is-picked'); });
+btnCont.addEventListener('click', ()=>{ btnCart.classList.remove('is-picked'); btnCont.classList.toggle('is-picked'); });
+
+/* ===== messages from parent ===== */
+window.addEventListener('message', (e)=>{
+  const msg = e.data || {};
+  if (msg.type === 'SERVICE_DATA' && msg.data){
+    SERVICE = { ...SERVICE, ...msg.data };
+    valService.textContent = SERVICE.name || '—';
+    valPrice.textContent = SERVICE.price ? `$${Number(SERVICE.price).toFixed(0)}` : '—';
+    updateDayHeader();
+  }
+  if (msg.type === 'AVAILABILITY' && Array.isArray(msg.data)){
+    AVAIL.clear();
+    // msg.data: [{date, slots:[{label,...}|'10:30 AM', ...]}]
+    msg.data.forEach(row=> AVAIL.set(row.date, row.slots || []));
+    buildMonth(current);
+  }
+  if (msg.type === 'ADDONS_UPDATE' && msg.payload){
+    const base = Number(msg.payload.basePrice || SERVICE.price || 0);
+    const add  = Number(msg.payload.addonsTotal || 0);
+    valPrice.textContent = `$${(base + add).toFixed(0)}`;
+  }
+});
+
+/* ===== init ===== */
+buildMonth(current);
+window.parent.postMessage({ type:'READY' }, '*');
+</script>
+</body>
+</html>

@@ -1,0 +1,305 @@
+/**
+ * Wix Backend Code - bookingBridge.jsw
+ * This file handles the communication between your booking system and Wix Bookings
+ * Provides availability data and booking creation functionality
+ */
+
+import { webMethod, Permissions } from 'wix-web-module';
+import { availabilityCalendar } from 'wix-bookings.v2';
+import wixBookingsBackend from 'wix-bookings-backend';
+import { contacts } from 'wix-crm-backend';
+
+/**
+ * getAvailability(serviceId, startISO, endISO, timeZone)
+ * Returns [{ date:"YYYY-MM-DD", slots:[{label,start,end,resourceId,slotId}] }]
+ */
+export async function getAvailability(serviceId, startISO, endISO, timeZone) {
+  if (!serviceId || !startISO || !endISO || !timeZone) {
+    throw new Error('Missing required params: serviceId, startISO, endISO, timeZone');
+  }
+
+  const start = new Date(startISO);
+  const end   = new Date(endISO);
+
+  const query = {
+    filter: { serviceId: [serviceId], startDate: start, endDate: end }
+  };
+  const options = { timezone: timeZone };
+
+  const res = await availabilityCalendar.queryAvailability(query, options);
+  const entries = res?.availabilityEntries || [];
+
+  // group-by date
+  const byDate = new Map();
+  for (const e of entries) {
+    const s = new Date(e.slot.startDate);
+    const end = new Date(e.slot.endDate);
+    const dateKey = s.toISOString().slice(0, 10); // YYYY-MM-DD
+    const label = s.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    const slot = {
+      label,
+      start: s.toISOString(),
+      end: end.toISOString(),
+      resourceId: e.slot?.resource?._id || e.slot?.resourceId || '',
+      slotId: e.slot?._id || e.slot?.slotId || ''
+    };
+
+    if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+    byDate.get(dateKey).push(slot);
+  }
+
+  return [...byDate.entries()].map(([date, slots]) => ({ date, slots }));
+}
+
+/**
+ * Create a booking with service data from the service selection page
+ */
+export const createBooking = webMethod(Permissions.Anyone, async (bookingData) => {
+    try {
+        console.log("Creating booking with data:", bookingData);
+        
+        // Validate booking data
+        const validation = validateBookingData(bookingData);
+        if (!validation.isValid) {
+            return {
+                success: false,
+                error: validation.error
+            };
+        }
+        
+        // Get or create contact
+        const contactResult = await getOrCreateContact(bookingData);
+        if (!contactResult.success) {
+            return {
+                success: false,
+                error: "Failed to create/find contact: " + contactResult.error
+            };
+        }
+        
+        // Create the booking
+        const bookingResult = await createWixBooking(bookingData, contactResult.contactId);
+        
+        if (bookingResult.success) {
+            // Send confirmation email if needed
+            // await sendBookingConfirmation(bookingResult.booking);
+            
+            return {
+                success: true,
+                bookingId: bookingResult.booking._id,
+                booking: bookingResult.booking
+            };
+        } else {
+            return {
+                success: false,
+                error: bookingResult.error
+            };
+        }
+        
+    } catch (error) {
+        console.error("Error in createBooking:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+/**
+ * Validate booking data received from frontend
+ */
+function validateBookingData(bookingData) {
+    const required = ['service', 'date', 'time'];
+    
+    for (let field of required) {
+        if (!bookingData[field]) {
+            return {
+                isValid: false,
+                error: `Missing required field: ${field}`
+            };
+        }
+    }
+    
+    // Validate service data
+    if (!bookingData.service.id || !bookingData.service.name) {
+        return {
+            isValid: false,
+            error: "Invalid service data"
+        };
+    }
+    
+    // Validate date format
+    if (!isValidDate(bookingData.date)) {
+        return {
+            isValid: false,
+            error: "Invalid date format"
+        };
+    }
+    
+    return { isValid: true };
+}
+
+/**
+ * Check if date is valid
+ */
+function isValidDate(dateString) {
+    const date = new Date(dateString);
+    return date instanceof Date && !isNaN(date);
+}
+
+/**
+ * Get existing contact or create new one
+ */
+async function getOrCreateContact(bookingData) {
+    try {
+        let contactId;
+        
+        // If customer email is provided, try to find existing contact
+        if (bookingData.email) {
+            const existingContacts = await contacts.queryContacts()
+                .eq('primaryInfo.email', bookingData.email)
+                .find();
+            
+            if (existingContacts.items.length > 0) {
+                contactId = existingContacts.items[0]._id;
+            } else {
+                // Create new contact
+                const newContact = await contacts.createContact({
+                    primaryInfo: {
+                        email: bookingData.email,
+                        name: {
+                            first: bookingData.firstName || '',
+                            last: bookingData.lastName || ''
+                        },
+                        phone: bookingData.phone || ''
+                    }
+                });
+                contactId = newContact.contact._id;
+            }
+        } else {
+            // Create anonymous contact if no email provided
+            const newContact = await contacts.createContact({
+                primaryInfo: {
+                    name: {
+                        first: bookingData.firstName || 'Anonymous',
+                        last: bookingData.lastName || 'Customer'
+                    },
+                    phone: bookingData.phone || ''
+                }
+            });
+            contactId = newContact.contact._id;
+        }
+        
+        return {
+            success: true,
+            contactId: contactId
+        };
+        
+    } catch (error) {
+        console.error("Error in getOrCreateContact:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Create the actual Wix booking
+ */
+async function createWixBooking(bookingData, contactId) {
+    try {
+        // Prepare booking request
+        const bookingRequest = {
+            serviceId: bookingData.service.id, // Make sure this matches your Wix service ID
+            contactId: contactId,
+            startTime: combineDateTime(bookingData.date, bookingData.time),
+            endTime: calculateEndTime(bookingData.date, bookingData.time, bookingData.service.duration),
+            notes: bookingData.notes || '',
+            // Add any additional fields your service requires
+        };
+        
+        console.log("Creating Wix booking with request:", bookingRequest);
+        
+        // Create the booking using Wix Bookings API
+        const booking = await wixBookingsBackend.createBooking(bookingRequest);
+        
+        return {
+            success: true,
+            booking: booking
+        };
+        
+    } catch (error) {
+        console.error("Error creating Wix booking:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Combine date and time into ISO string
+ */
+function combineDateTime(date, time) {
+    const dateObj = new Date(date);
+    const [hours, minutes] = time.split(':');
+    dateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    return dateObj.toISOString();
+}
+
+/**
+ * Calculate end time based on start time and duration
+ */
+function calculateEndTime(date, time, durationMinutes) {
+    const startTime = new Date(combineDateTime(date, time));
+    const endTime = new Date(startTime.getTime() + (durationMinutes * 60000));
+    return endTime.toISOString();
+}
+
+/**
+ * Get available services (optional helper function)
+ */
+export const getServices = webMethod(Permissions.Anyone, async () => {
+    try {
+        // Replace with your actual service retrieval logic
+        const services = await wixBookingsBackend.queryServices().find();
+        
+        return {
+            success: true,
+            services: services.items
+        };
+        
+    } catch (error) {
+        console.error("Error getting services:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+/**
+ * Get available time slots for a service and date
+ */
+export const getAvailableSlots = webMethod(Permissions.Anyone, async (serviceId, date) => {
+    try {
+        const slots = await wixBookingsBackend.queryAvailability({
+            serviceId: serviceId,
+            startTime: date,
+            endTime: date // Same day
+        });
+        
+        return {
+            success: true,
+            slots: slots.availableSlots
+        };
+        
+    } catch (error) {
+        console.error("Error getting available slots:", error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
