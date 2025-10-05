@@ -127,14 +127,14 @@ async function handlePaymentChoice(serviceData, paymentType, action) {
   }
 }
 
-// Add to cart functionality
+// Add to cart functionality with improved error handling
 async function addToCart(paymentData) {
   try {
     // Show loading state
     showLoadingState('Adding to cart...');
 
     if (paymentData.productSku) {
-      // Add the appropriate product to cart
+      // Use wix-stores-frontend API as recommended by Wix IDE support
       await wixStores.cart.addProducts([{ 
         productId: paymentData.productSku, 
         quantity: 1,
@@ -147,6 +147,8 @@ async function addToCart(paymentData) {
         }
       }]);
 
+      console.log("Product added to cart successfully");
+      
       // Show success message
       showSuccessMessage(`${paymentData.type === 'deposit' ? 'Deposit' : 'Full payment'} added to cart!`);
       
@@ -165,7 +167,7 @@ async function addToCart(paymentData) {
       goToBookingPage(paymentData);
     }
   } catch (error) {
-    console.error('Add to cart failed:', error);
+    console.error("Error adding product to cart:", error);
     showErrorMessage('Failed to add to cart. Redirecting to booking page...');
     setTimeout(() => goToBookingPage(paymentData), 2000);
   }

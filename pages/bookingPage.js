@@ -137,91 +137,99 @@ function setupIframeListeners() {
         }
     };
 
-    // ---- Calendar iframe messaging ----
-    cal?.onMessage(async (e) => {
-        const d = e.data || {};
-        console.log('Calendar iframe message:', d);
+    // ---- Calendar iframe messaging with enhanced error handling ----
+    cal?.onMessage(async (message) => {
+        console.log("Message received from calendar iframe:", message.data);
+        const d = message.data || {};
         
-        if (d.type === 'READY') {
-            cal.postMessage(servicePayload);
-            await refreshMonth(new Date(), selectedServiceData.serviceId, timeZone);
-        }
-        
-        if (d.type === 'MONTH_CHANGE') {
-            const y = Number(d.payload?.year);
-            const m = Number(d.payload?.month);
-            if (Number.isFinite(y) && Number.isFinite(m)) {
-                await refreshMonth(new Date(y, m, 1), selectedServiceData.serviceId, timeZone);
+        try {
+            if (d.type === 'READY') {
+                cal.postMessage(servicePayload);
+                await refreshMonth(new Date(), selectedServiceData.serviceId, timeZone);
             }
-        }
-        
-        if (d.type === 'TIME_SELECTED') {
-            selectedDate = d.dateLabel;
-            selectedTime = d.timeLabel;
             
-            console.log("Date and time selected:", { date: selectedDate, time: selectedTime });
-            
-            // Forward to add-ons iframe
-            add?.postMessage({
-                type: 'vx:context',
-                payload: {
-                    serviceName: selectedServiceData.name,
-                    dateLabel: d.dateLabel || '',
-                    timeLabel: d.timeLabel || ''
+            if (d.type === 'MONTH_CHANGE') {
+                const y = Number(d.payload?.year);
+                const m = Number(d.payload?.month);
+                if (Number.isFinite(y) && Number.isFinite(m)) {
+                    await refreshMonth(new Date(y, m, 1), selectedServiceData.serviceId, timeZone);
                 }
-            });
-            
-            // Update booking data
-            bookingData.date = selectedDate;
-            bookingData.time = selectedTime;
-            
-            // Update UI
-            if ($w("#selectedDateText")) {
-                $w("#selectedDateText").text = `Selected: ${selectedDate} at ${selectedTime}`;
             }
+            
+            if (d.type === 'TIME_SELECTED') {
+                selectedDate = d.dateLabel;
+                selectedTime = d.timeLabel;
+                
+                console.log("Date and time selected:", { date: selectedDate, time: selectedTime });
+                
+                // Forward to add-ons iframe
+                add?.postMessage({
+                    type: 'vx:context',
+                    payload: {
+                        serviceName: selectedServiceData.name,
+                        dateLabel: d.dateLabel || '',
+                        timeLabel: d.timeLabel || ''
+                    }
+                });
+                
+                // Update booking data
+                bookingData.date = selectedDate;
+                bookingData.time = selectedTime;
+                
+                // Update UI
+                if ($w("#selectedDateText")) {
+                    $w("#selectedDateText").text = `Selected: ${selectedDate} at ${selectedTime}`;
+                }
+            }
+        } catch (error) {
+            console.error("Error handling calendar message:", error);
         }
     });
 
-    // ---- Add-ons iframe messaging ----
-    add?.onMessage((e) => {
-        const d = e.data || {};
-        console.log('Add-ons iframe message:', d);
+    // ---- Add-ons iframe messaging with enhanced error handling ----
+    add?.onMessage((message) => {
+        console.log("Message received from add-ons iframe:", message.data);
+        const d = message.data || {};
         
-        if (d.type === 'READY') {
-            add.postMessage(servicePayload);
-        }
-
-        if (d.type === 'vx:addons' || d.type === 'ADDONS_UPDATE') {
-            const total = d.type === 'vx:addons' ? (d.payload?.total || 0) : (d.payload?.addonsTotal || 0);
-            const minutes = d.type === 'vx:addons' ? (d.payload?.minutes || 0) : (d.payload?.addonsMinutes || 0);
-
-            // Update total price display
-            if ($w('#txtTotalPrice')) {
-                const base = Number(selectedServiceData.price || 0);
-                $w('#txtTotalPrice').text = `$${(base + Number(total)).toFixed(0)}`;
+        try {
+            if (d.type === 'READY') {
+                add.postMessage(servicePayload);
             }
 
-            // Forward to calendar
-            cal?.postMessage({
-                type: 'ADDONS_UPDATE',
-                payload: {
-                    addonsItems: d.payload?.items || d.payload?.addonsItems || [],
-                    addonsTotal: total,
-                    addonsMinutes: minutes
+            if (d.type === 'vx:addons' || d.type === 'ADDONS_UPDATE') {
+                const total = d.type === 'vx:addons' ? (d.payload?.total || 0) : (d.payload?.addonsTotal || 0);
+                const minutes = d.type === 'vx:addons' ? (d.payload?.minutes || 0) : (d.payload?.addonsMinutes || 0);
+
+                // Update total price display
+                if ($w('#txtTotalPrice')) {
+                    const base = Number(selectedServiceData.price || 0);
+                    $w('#txtTotalPrice').text = `$${(base + Number(total)).toFixed(0)}`;
                 }
-            });
+
+                // Forward to calendar
+                cal?.postMessage({
+                    type: 'ADDONS_UPDATE',
+                    payload: {
+                        addonsItems: d.payload?.items || d.payload?.addonsItems || [],
+                        addonsTotal: total,
+                        addonsMinutes: minutes
+                    }
+                });
+                
+                // Store in booking data
+                bookingData.addons = {
+                    items: d.payload?.items || d.payload?.addonsItems || [],
+                    total: total,
+                    minutes: minutes
+                };
+            }
             
-            // Store in booking data
-            bookingData.addons = {
-                items: d.payload?.items || d.payload?.addonsItems || [],
-                total: total,
-                minutes: minutes
-            };
-        }
-        
-        // Handle booking submission from add-ons iframe
-        if (d.type === 'BOOKING_SUBMIT') {
-            handleBookingSubmission(d.payload);
+            // Handle booking submission from add-ons iframe
+            if (d.type === 'BOOKING_SUBMIT') {
+                handleBookingSubmission(d.payload);
+            }
+        } catch (error) {
+            console.error("Error handling add-ons message:", error);
         }
     });
 }

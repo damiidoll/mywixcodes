@@ -8,6 +8,33 @@ import { webMethod, Permissions } from 'wix-web-module';
 import { availabilityCalendar } from 'wix-bookings.v2';
 import wixBookingsBackend from 'wix-bookings-backend';
 import { contacts } from 'wix-crm-backend';
+import wixData from 'wix-data';
+
+/**
+ * Get product mapping for a service (recommended by Wix IDE support)
+ */
+export const getProductForService = webMethod(Permissions.Anyone, async (serviceId) => {
+  try {
+    const result = await wixData.query("ProductServiceMapping")
+      .eq("serviceId", serviceId)
+      .find();
+      
+    if (result.items.length > 0) {
+      return {
+        success: true,
+        mapping: result.items[0]
+      };
+    } else {
+      throw new Error("No product linked to this service");
+    }
+  } catch (error) {
+    console.error("Error retrieving product for service:", error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
 
 /**
  * getAvailability(serviceId, startISO, endISO, timeZone)

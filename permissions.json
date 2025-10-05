@@ -1,5 +1,8 @@
 {
   "backend/bookingBridge.jsw": {
-    "getAvailability": { "role": "anyone" }
+    "getAvailability": { "callers": ["anyone"] },
+    "getProductForService": { "callers": ["anyone"] },
+    "createBooking": { "callers": ["anyone"] },
+    "processBookingPayment": { "callers": ["anyone"] }
   }
 }

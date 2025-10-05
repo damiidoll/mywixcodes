@@ -1,0 +1,76 @@
+{
+  "collectionName": "ProductServiceMapping",
+  "description": "Links Wix Bookings services with Wix Stores products for dual-payment system",
+  "fields": [
+    {
+      "key": "_id",
+      "displayName": "ID",
+      "type": "text"
+    },
+    {
+      "key": "serviceId", 
+      "displayName": "Service ID",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "serviceName",
+      "displayName": "Service Name", 
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "depositProductId",
+      "displayName": "Deposit Product ID",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "fullPaymentProductId", 
+      "displayName": "Full Payment Product ID",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "depositAmount",
+      "displayName": "Deposit Amount",
+      "type": "number",
+      "required": true
+    },
+    {
+      "key": "fullAmount",
+      "displayName": "Full Amount", 
+      "type": "number",
+      "required": true
+    }
+  ],
+  "sampleData": [
+    {
+      "_id": "mapping-haircut-001",
+      "serviceId": "service-haircut-001", 
+      "serviceName": "Haircut & Style",
+      "depositProductId": "product-deposit-haircut-001",
+      "fullPaymentProductId": "product-full-haircut-001", 
+      "depositAmount": 45,
+      "fullAmount": 150
+    },
+    {
+      "_id": "mapping-color-001",
+      "serviceId": "service-color-001",
+      "serviceName": "Hair Color & Style", 
+      "depositProductId": "product-deposit-color-001",
+      "fullPaymentProductId": "product-full-color-001",
+      "depositAmount": 60,
+      "fullAmount": 200
+    },
+    {
+      "_id": "mapping-extensions-001", 
+      "serviceId": "service-extensions-001",
+      "serviceName": "Hair Extensions Install",
+      "depositProductId": "product-deposit-extensions-001", 
+      "fullPaymentProductId": "product-full-extensions-001",
+      "depositAmount": 90,
+      "fullAmount": 300
+    }
+  ]
+}
